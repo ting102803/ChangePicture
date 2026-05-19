@@ -16,24 +16,24 @@ if os.path.exists(local_tessdata):
 
 def detect_orientation_by_ocr(image: Image.Image) -> int:
     """
-    이미지를 4방향(0, 90, 180, 270)으로 회전시키며 OCR을 수행하여,
-    가장 한글이 많이 감지되는 각도를 반환합니다.
+    4방향 회전 스캔(--psm 4)을 사용하여 이미지의 정확한 회전 각도를 감지합니다.
+    Tesseract OSD는 한국어 표/영수증에서 180도 오작동이 잦아 사용하지 않습니다.
     """
     best_angle = 0
     max_korean_chars = -1
     
-    # 속도를 위해 이미지를 복사하여 축소 (최대 긴 변이 1000px 정도가 되도록)
+    # 해상도 상향 (너무 작으면 인식 실패, 너무 크면 속도 저하)
     temp_img = image.copy()
-    temp_img.thumbnail((1200, 1200))
-    # 흑백 변환 (OCR 속도 및 인식률 향상)
+    temp_img.thumbnail((2000, 2000))
     temp_img = temp_img.convert('L')
+    temp_img = ImageOps.autocontrast(temp_img)
     
     for angle in [0, 90, 180, 270]:
         rotated = temp_img.rotate(angle, expand=True)
-        # --psm 0 대신 실제 글자를 인식하도록 함. 한글 언어팩 사용
         try:
-            text = pytesseract.image_to_string(rotated, lang='kor')
-            # 정규식을 이용해 한글(가-힣) 글자수 카운트
+            # PSM 4 옵션: 가변 크기의 단일 텍스트 열로 가정.
+            # 표가 많은 문서에서 가로/세로 판별 능력이 가장 뛰어남.
+            text = pytesseract.image_to_string(rotated, lang='kor', config='--psm 4')
             korean_chars = len(re.findall(r'[가-힣]', text))
             print(f"Angle {angle}: {korean_chars} Korean characters found")
             
@@ -43,7 +43,7 @@ def detect_orientation_by_ocr(image: Image.Image) -> int:
         except Exception as e:
             print(f"OCR failed for angle {angle}: {e}")
             
-    # 인식된 한글이 너무 적으면 오류이거나 글씨가 없는 이미지이므로 회전하지 않음
+    # 인식된 한글이 너무 적으면 원본 유지
     if max_korean_chars < 5:
         print("Not enough Korean text detected to determine rotation. Keeping original.")
         return 0

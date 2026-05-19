@@ -15,12 +15,18 @@ st.title("📸 ChangePicture")
 st.subheader("한글 문서 사진을 자동 회전시키고, 용량을 최적화합니다.")
 st.write("이미지를 업로드하면 자동으로 올바른 방향으로 회전하고, 불필요한 메타데이터를 제거하여 1MB 이하의 JPG 파일로 변환합니다.")
 
+with st.sidebar:
+    st.header("⚙️ 설정 및 관리")
+    if st.button("🗑️ 이미지 처리 캐시 초기화", help="이전에 변환했던 이미지 캐시(메모리)를 모두 지웁니다."):
+        st.cache_data.clear()
+        st.success("캐시가 초기화되었습니다!")
+
 uploaded_files = st.file_uploader("이미지 파일을 업로드하세요 (JPG, PNG, JPEG) - 여러 장 선택 가능", type=['jpg', 'jpeg', 'png'], accept_multiple_files=True)
 
 use_exif = st.checkbox("스마트폰 기본 회전 정보(EXIF) 적용", value=False, help="이 옵션을 끄면 스마트폰 센서가 잘못 기록한 방향 정보를 무시하고 가로 방향을 유지합니다.")
 
 @st.cache_data(show_spinner=False)
-def get_processed_result(file_bytes, filename, use_exif):
+def process_and_cache_image(file_bytes, filename, use_exif):
     try:
         processed_bytes, new_filename = process_image(file_bytes, filename, use_exif)
         return {
@@ -45,7 +51,7 @@ if uploaded_files:
         def process_single_file(uploaded_file):
             file_bytes = uploaded_file.getvalue()
             # 캐시된 처리 결과 가져오기
-            result = get_processed_result(file_bytes, uploaded_file.name, use_exif)
+            result = process_and_cache_image(file_bytes, uploaded_file.name, use_exif)
             
             # uploaded_file 객체는 캐시할 수 없으므로 결과 딕셔너리에 따로 추가
             result_copy = result.copy()
