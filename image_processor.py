@@ -2,8 +2,17 @@ import io
 import os
 from PIL import Image, ImageOps
 import pytesseract
-
 import re
+
+# Windows의 경우 Tesseract-OCR 경로 명시적 지정 및 로컬 tessdata 설정
+tesseract_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+if os.path.exists(tesseract_path):
+    pytesseract.pytesseract.tesseract_cmd = tesseract_path
+
+# 로컬 tessdata 폴더를 사용하도록 TESSDATA_PREFIX 설정
+local_tessdata = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tessdata')
+if os.path.exists(local_tessdata):
+    os.environ['TESSDATA_PREFIX'] = local_tessdata
 
 def detect_orientation_by_ocr(image: Image.Image) -> int:
     """
