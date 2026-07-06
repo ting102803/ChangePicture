@@ -11,6 +11,11 @@ st.set_page_config(
     layout="centered"
 )
 
+# 페이지 새로고침이나 새로 열었을 때 한 번만 캐시를 초기화합니다.
+if "session_initialized" not in st.session_state:
+    st.cache_data.clear()
+    st.session_state["session_initialized"] = True
+
 st.title("📸 ChangePicture")
 st.subheader("한글 문서 사진을 자동 회전시키고, 용량을 최적화합니다.")
 st.write("이미지를 업로드하면 자동으로 올바른 방향으로 회전하고, 불필요한 메타데이터를 제거하여 1MB 이하의 JPG 파일로 변환합니다.")
@@ -24,11 +29,12 @@ with st.sidebar:
 uploaded_files = st.file_uploader("이미지 파일을 업로드하세요 (JPG, PNG, JPEG) - 여러 장 선택 가능", type=['jpg', 'jpeg', 'png'], accept_multiple_files=True)
 
 use_exif = st.checkbox("스마트폰 기본 회전 정보(EXIF) 적용", value=False, help="이 옵션을 끄면 스마트폰 센서가 잘못 기록한 방향 정보를 무시하고 가로 방향을 유지합니다.")
+compress_only = st.checkbox("🔄 그림 회전 없이 용량 압축만 하기 (빠른 처리)", value=False, help="이 옵션을 켜면 시간이 오래 걸리는 이미지 회전(OCR) 과정을 생략하고 파일 용량만 빠르게 줄입니다. 업로드 전에 체크하세요.")
 
 @st.cache_data(show_spinner=False)
-def process_and_cache_image(file_bytes, filename, use_exif):
+def process_and_cache_image(file_bytes, filename, use_exif, compress_only):
     try:
-        processed_bytes, new_filename = process_image(file_bytes, filename, use_exif)
+        processed_bytes, new_filename = process_image(file_bytes, filename, use_exif, compress_only)
         return {
             "success": True,
             "processed_bytes": processed_bytes,
@@ -51,7 +57,7 @@ if uploaded_files:
         def process_single_file(uploaded_file):
             file_bytes = uploaded_file.getvalue()
             # 캐시된 처리 결과 가져오기
-            result = process_and_cache_image(file_bytes, uploaded_file.name, use_exif)
+            result = process_and_cache_image(file_bytes, uploaded_file.name, use_exif, compress_only)
             
             # uploaded_file 객체는 캐시할 수 없으므로 결과 딕셔너리에 따로 추가
             result_copy = result.copy()
