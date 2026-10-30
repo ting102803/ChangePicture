@@ -94,7 +94,7 @@ if uploaded_files:
             data=zip_buffer,
             file_name="optimized_images.zip",
             mime="application/zip",
-            use_container_width=True
+            width="stretch"
         )
 
     # 개별 이미지 결과 출력
@@ -109,12 +109,12 @@ if uploaded_files:
             col1, col2 = st.columns(2)
             with col1:
                 st.write("### 원본 이미지")
-                st.image(uploaded_file, use_container_width=True)
+                st.image(uploaded_file, width="stretch")
                 st.caption(f"원본 용량: {res['original_size_kb']:.2f} KB")
 
             with col2:
                 st.write("### 처리된 이미지")
-                st.image(res["processed_bytes"], use_container_width=True)
+                st.image(res["processed_bytes"], width="stretch")
                 st.caption(f"변환된 용량: {res['processed_size_kb']:.2f} KB")
                 
                 # 피드백 메시지
