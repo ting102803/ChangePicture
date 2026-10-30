@@ -1,5 +1,5 @@
-# 가볍고 안정적인 Python 3.9 slim 이미지 사용
-FROM python:3.9-slim
+# 로컬 검증 환경과 동일한 Python 3.12 계열 사용
+FROM python:3.12-slim
 
 # 환경 변수 설정
 ENV PYTHONDONTWRITEBYTECODE=1
