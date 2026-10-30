@@ -66,7 +66,7 @@ if uploaded_files:
             return result_copy
 
         # ThreadPoolExecutor를 사용한 병렬 처리
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
             # map을 사용하여 업로드된 순서대로 결과를 반환받습니다.
             processed_results = list(executor.map(process_single_file, uploaded_files))
 

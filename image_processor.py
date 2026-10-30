@@ -4,8 +4,8 @@ from PIL import Image, ImageOps
 import pytesseract
 import re
 
-# 여러 이미지와 Tesseract 내부 병렬 처리가 CPU를 중복 점유하지 않게 합니다.
-os.environ.setdefault('OMP_THREAD_LIMIT', '1')
+# 이미지 작업당 Tesseract 내부 스레드는 최대 3개로 제한합니다.
+os.environ['OMP_THREAD_LIMIT'] = '3'
 
 # Windows의 경우 Tesseract-OCR 경로 명시적 지정 및 로컬 tessdata 설정
 tesseract_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
