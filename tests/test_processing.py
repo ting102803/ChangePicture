@@ -23,6 +23,12 @@ def ocr_data(text):
 
 
 class ProcessingTests(unittest.TestCase):
+    def setUp(self):
+        # 표 본문 점수의 회귀 검증. 페이지 번호 사전 검사는 별도 테스트합니다.
+        footer = patch.object(processor, "_detect_footer_orientation", return_value=None)
+        footer.start()
+        self.addCleanup(footer.stop)
+
     def test_large_noise_fits_limit_and_resizes(self):
         image = Image.frombytes("RGB", (2600, 2600), random.Random(42).randbytes(2600 * 2600 * 3))
         warnings = []

@@ -21,6 +21,47 @@ TARGET_SIZE = 1_000_000  # 제출 사이트의 십진수 1MB 제한도 충족합
 OCR_TIMEOUT = 20
 
 
+def _detect_footer_orientation(image: Image.Image):
+    """하단 중앙의 독립된 페이지 분수를 높은 신뢰도로 읽을 때만 선택합니다."""
+    candidates = []
+    for angle in (0, 90, 180, 270):
+        rotated = image.rotate(angle, expand=True)
+        width, height = rotated.size
+        left, top = int(width * 0.3), int(height * 0.86)
+        crop = rotated.crop((left, top, int(width * 0.7), int(height * 0.98)))
+        try:
+            data = pytesseract.image_to_data(
+                crop, lang='eng', config='--psm 11',
+                output_type=pytesseract.Output.DICT, timeout=OCR_TIMEOUT,
+            )
+        except (pytesseract.TesseractError, pytesseract.TesseractNotFoundError, RuntimeError):
+            # 영어 데이터가 없는 설치에서도 기존 한국어 OCR 경로를 사용합니다.
+            return None
+        lines = {}
+        for index, text in enumerate(data['text']):
+            if str(text).strip():
+                key = (data['block_num'][index], data['par_num'][index], data['line_num'][index])
+                lines.setdefault(key, []).append(index)
+        for indexes in lines.values():
+            text = ''.join(str(data['text'][i]).strip() for i in indexes)
+            match = re.fullmatch(r'([1-9]\d?)\s*/\s*([1-9]\d?)', text)
+            if not match or int(match[1]) > int(match[2]):
+                continue
+            if min(float(data['conf'][i]) for i in indexes) < 80:
+                continue
+            x1 = min(data['left'][i] for i in indexes)
+            x2 = max(data['left'][i] + data['width'][i] for i in indexes)
+            y1 = min(data['top'][i] for i in indexes)
+            center_x = left + (x1 + x2) / 2
+            if width * 0.4 < center_x < width * 0.6 and top + y1 > height * 0.87:
+                candidates.append(angle)
+                break
+    # 여러 방향에서 번호가 읽히면 이 신호만으로 회전하지 않습니다.
+    if len(candidates) == 1:
+        return candidates[0]
+    return None
+
+
 def detect_orientation_by_ocr(image: Image.Image, warnings=None) -> int:
     """
     4방향 회전 스캔(--psm 4)을 사용하여 이미지의 정확한 회전 각도를 감지합니다.
@@ -36,6 +77,12 @@ def detect_orientation_by_ocr(image: Image.Image, warnings=None) -> int:
     temp_img.thumbnail((2000, 2000))
     temp_img = temp_img.convert('L')
     temp_img = ImageOps.autocontrast(temp_img)
+
+    # 표의 숫자가 거꾸로 더 잘 읽히는 경우를 피하고, 번호가 명확하면 전체 OCR을 생략합니다.
+    footer_angle = _detect_footer_orientation(temp_img)
+    if footer_angle is not None:
+        print(f"Orientation determined by isolated footer page number: {footer_angle}")
+        return footer_angle
     
     for angle in [0, 90, 180, 270]:
         rotated = temp_img.rotate(angle, expand=True)
